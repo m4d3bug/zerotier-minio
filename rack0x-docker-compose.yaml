@@ -1,0 +1,45 @@
+rackversion: '3.7'
+
+services:
+  rack04:                       # rename on different nodes
+    hostname: rack04            # rename on different nodes
+    image: quay.io/minio/minio:RELEASE.2022-10-21T22-37-48Z
+    command: server --console-address ":9001" http://rack0{1...4}/data{1...2}
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    extra_hosts:
+      - "rack01:10.9.7.1"  # 1st node
+      - "rack02:10.9.7.2"  # 2nd node
+      - "rack03:10.9.7.3"  # 3rd node
+      - "rack04:10.9.7.4"  # 4rd node
+    environment:
+      MINIO_ROOT_USER: YOUR_USERNAME
+      MINIO_ROOT_PASSWORD: YOUR_PASSWORD
+    volumes:
+      - data4-1:/data1          # rename on different nodes
+      - data4-2:/data2          # rename on different nodes
+    healthcheck:      
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s      
+      timeout: 20s
+      retries: 3
+    networks:
+      - app_minio_network
+
+  cloudflared:
+    container_name: cloudflared
+    image: cloudflare/cloudflared:2022.12.1-amd64
+    restart: always
+    entrypoint: ["cloudflared", "tunnel", "--no-autoupdate", "run", "--force", "--token", "YOUR_TUNNEL_TOKEN"]
+    networks:
+      - app_minio_network
+  
+networks:
+  app_minio_network:
+
+
+volumes:
+  data4-1:                      # rename on different nodes
+  data4-2:                      # rename on different nodes
